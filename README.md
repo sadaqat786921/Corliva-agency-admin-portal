@@ -9,4 +9,4 @@ npm install
 npm run dev
 ```
 
-Sign in with any email and a password of 8+ characters. See `AGENTS.md` for the design rules.
+Demo sign-in: any email and password, then security code 246810. See `AGENTS.md` for the design rules.

@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, ReactNode, Dispatch, SetStateAction } from 'react'
 import * as seed from './seed'
 import type { AuditEntry } from './seed'
 
@@ -11,31 +11,52 @@ const ss = {
   del(k: string) { try { sessionStorage.removeItem(k) } catch { /* ignore */ } },
 }
 
+const DATA_PREFIX = 'corliva.data.'
+
+/** useState that is saved in sessionStorage, so demo changes survive a page refresh. */
+function usePersist<T>(key: string, init: T): [T, Dispatch<SetStateAction<T>>] {
+  const [v, setV] = useState<T>(() => {
+    const raw = ss.get(DATA_PREFIX + key)
+    if (raw) { try { return JSON.parse(raw) as T } catch { /* ignore */ } }
+    return init
+  })
+  useEffect(() => { ss.set(DATA_PREFIX + key, JSON.stringify(v)) }, [key, v])
+  return [v, setV]
+}
+
+/** Clears every saved demo change and reloads the original sample data. Keeps the user signed in. */
+export function resetDemoData() {
+  try {
+    Object.keys(sessionStorage).filter(k => k.startsWith(DATA_PREFIX)).forEach(k => sessionStorage.removeItem(k))
+  } catch { /* ignore */ }
+  window.location.reload()
+}
+
 function useStoreValue() {
   const [signedIn, setSignedIn] = useState(ss.get('corliva.auth') === '1')
   const [setupDone, setSetupDone] = useState(ss.get('corliva.setup') === '1')
-  const [agency, setAgency] = useState({
+  const [agency, setAgency] = usePersist('agency', {
     name: 'Royality Home Care', legalName: 'Royality Home Care LLC', email: 'office@royalityhomecare.com',
     phone: '(217) 555-0100', address: '220 Lakeview Ave, Springfield, IL 62701', timezone: 'America/Chicago (Central Time)', licence: 'IL-HCA-204871',
   })
-  const [me, setMe] = useState({ name: 'Fred Morgan', email: 'fred@royalityhomecare.com', phone: '(217) 555-0100', initials: 'FM' })
-  const [branch, setBranch] = useState<string>('all')
-  const [branches, setBranches] = useState(seed.branches)
-  const [users, setUsers] = useState(seed.users)
-  const [lists, setLists] = useState(seed.lists)
-  const [requirements, setRequirements] = useState(seed.requirements)
-  const [rules, setRules] = useState(seed.rules)
-  const [alerts, setAlerts] = useState(seed.alerts)
-  const [referrals, setReferrals] = useState(seed.referrals)
-  const [clients, setClients] = useState(seed.clients)
-  const [caregivers] = useState(seed.caregivers)
-  const [visits, setVisits] = useState(seed.visits)
-  const [approvals, setApprovals] = useState(seed.approvals)
-  const [incidents, setIncidents] = useState(seed.incidents)
-  const [audit, setAudit] = useState(seed.audit)
-  const [inbox, setInbox] = useState(seed.inbox)
-  const [requests, setRequests] = useState(seed.familyRequests)
-  const [events, setEvents] = useState(seed.events)
+  const [me, setMe] = usePersist('me', { name: 'Fred Morgan', email: 'fred@royalityhomecare.com', phone: '(217) 555-0100', initials: 'FM' })
+  const [branch, setBranch] = usePersist<string>('branch', 'all')
+  const [branches, setBranches] = usePersist('branches', seed.branches)
+  const [users, setUsers] = usePersist('users', seed.users)
+  const [lists, setLists] = usePersist('lists', seed.lists)
+  const [requirements, setRequirements] = usePersist('requirements', seed.requirements)
+  const [rules, setRules] = usePersist('rules', seed.rules)
+  const [alerts, setAlerts] = usePersist('alerts', seed.alerts)
+  const [referrals, setReferrals] = usePersist('referrals', seed.referrals)
+  const [clients, setClients] = usePersist('clients', seed.clients)
+  const [caregivers] = usePersist('caregivers', seed.caregivers)
+  const [visits, setVisits] = usePersist('visits', seed.visits)
+  const [approvals, setApprovals] = usePersist('approvals', seed.approvals)
+  const [incidents, setIncidents] = usePersist('incidents', seed.incidents)
+  const [audit, setAudit] = usePersist('audit', seed.audit)
+  const [inbox, setInbox] = usePersist('inbox', seed.inbox)
+  const [requests, setRequests] = usePersist('requests', seed.familyRequests)
+  const [events, setEvents] = usePersist('events', seed.events)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const toast = useCallback((text: string, tone: Tone = 'success') => {

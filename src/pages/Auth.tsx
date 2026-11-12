@@ -25,19 +25,40 @@ function AuthFrame({ children, side }: { children: ReactNode; side?: ReactNode }
   )
 }
 
+export const DEMO_CODE = '246810'
+
 export function Login() {
   const s = useStore()
   const nav = useNavigate()
+  const [step, setStep] = useState<'details' | 'code'>('details')
   const [email, setEmail] = useState('fred@royalityhomecare.com')
   const [pw, setPw] = useState('')
   const [show, setShow] = useState(false)
+  const [code, setCode] = useState('')
   const [err, setErr] = useState('')
   const submit = (e: React.FormEvent) => {
     e.preventDefault()
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setErr('Please enter a valid email address.')
-    if (pw.length < 8) return setErr('That password doesn’t look right. It has at least 8 characters.')
+    if (!pw) return setErr('Please enter your password.')
+    setErr(''); setStep('code')
+  }
+  const verify = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (code.trim() !== DEMO_CODE) return setErr('That code isn’t right. Check the 6 numbers and try again.')
     setErr(''); s.signIn(); nav(s.setupDone ? '/' : '/setup')
   }
+  if (step === 'code') return (
+    <AuthFrame>
+      <form className="auth-card" onSubmit={verify} noValidate>
+        <button type="button" className="link-btn row" style={{ gap: 6, alignSelf: 'flex-start' }} onClick={() => { setStep('details'); setErr(''); setCode('') }}><ArrowLeft size={16} />Back</button>
+        <div><h1 className="t-h1" style={{ fontSize: 26 }}>Enter your security code</h1><p className="t-secondary" style={{ margin: '6px 0 0' }}>We sent a 6-digit code to <b>{email.trim()}</b>.</p></div>
+        {err && <AlertBanner tone="danger" title="Code not accepted">{err}</AlertBanner>}
+        <Field label="Security code"><Input icon={Lock} inputMode="numeric" autoComplete="one-time-code" maxLength={6} autoFocus value={code} onChange={e => setCode(e.target.value.replace(/\D/g, ''))} placeholder="6 numbers" /></Field>
+        <button className="btn btn-primary" type="submit" style={{ height: 44 }}>Verify and sign in</button>
+        <p className="t-caption t-muted" style={{ textAlign: 'center', margin: 0 }}>Demo code: <b>{DEMO_CODE}</b></p>
+      </form>
+    </AuthFrame>
+  )
   return (
     <AuthFrame>
       <form className="auth-card" onSubmit={submit} noValidate>
@@ -50,7 +71,7 @@ export function Login() {
         </Field>
         <div className="row between"><label className="check"><input type="checkbox" defaultChecked />Keep me signed in</label><Link to="/forgot" className="t-small t-medium">Forgot password?</Link></div>
         <button className="btn btn-primary" type="submit" style={{ height: 44 }}>Sign in</button>
-        <p className="t-caption t-muted" style={{ textAlign: 'center', margin: 0 }}>For this demo, any password with 8 or more characters works.</p>
+        <p className="t-caption t-muted" style={{ textAlign: 'center', margin: 0 }}>Demo: any email and password, then security code <b>{DEMO_CODE}</b>.</p>
       </form>
     </AuthFrame>
   )

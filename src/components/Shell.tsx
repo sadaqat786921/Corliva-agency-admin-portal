@@ -2,9 +2,9 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutGrid, Users, Building2, Layers, ShieldCheck, Bell, UserPlus, Home, CalendarDays, ClipboardCheck,
-  TriangleAlert, BarChart3, History, SlidersHorizontal, LogOut, Search, ChevronDown, Calendar, MessageSquare, Check, UserRound,
+  TriangleAlert, BarChart3, History, SlidersHorizontal, LogOut, RotateCcw, Search, ChevronDown, Calendar, MessageSquare, Check, UserRound,
 } from 'lucide-react'
-import { useStore, fmtDate } from '../data/store'
+import { useStore, fmtDate, resetDemoData } from '../data/store'
 import { TODAY } from '../data/seed'
 import { Avatar, ConfirmDialog, Toasts, useClickOutside } from './ui'
 
@@ -213,6 +213,7 @@ function Header() {
           <div className="popover">
             <button className="menu-item" onClick={() => go('/settings')}><UserRound />My profile</button>
             <button className="menu-item" onClick={() => go('/settings?tab=security')}><ShieldCheck />Password & security</button>
+            <button className="menu-item" onClick={resetDemoData}><RotateCcw />Reset demo data</button>
             <div className="menu-sep" />
             <button className="menu-item danger" onClick={() => { s.signOut(); go('/login') }}><LogOut />Log out</button>
           </div>

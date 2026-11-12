@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react'
 import { HashRouter, Navigate, Route, Routes, Link } from 'react-router-dom'
 import { Compass } from 'lucide-react'
 import { StoreProvider, useStore } from './data/store'
@@ -19,7 +20,7 @@ import Reports from './pages/Reports'
 import Audit from './pages/Audit'
 import Settings from './pages/Settings'
 
-function Guard({ children }: { children: JSX.Element }) {
+function Guard({ children }: { children: ReactElement }) {
   const s = useStore()
   if (!s.signedIn) return <Navigate to="/login" replace />
   if (!s.setupDone) return <Navigate to="/setup" replace />

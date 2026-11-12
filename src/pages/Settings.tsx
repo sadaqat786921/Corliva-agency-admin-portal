@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { UserRound, Phone, Mail, Lock, Eye, EyeOff, Monitor, LogOut } from 'lucide-react'
-import { useStore } from '../data/store'
-import { AlertBanner, Button, Field, Input, PageHead, Tabs } from '../components/ui'
+import { UserRound, Phone, Mail, Lock, Eye, EyeOff, Monitor, LogOut, RotateCcw } from 'lucide-react'
+import { useStore, resetDemoData } from '../data/store'
+import { AlertBanner, Button, ConfirmDialog, Field, Input, PageHead, Tabs } from '../components/ui'
 
 export default function Settings() {
   const s = useStore()
@@ -12,6 +12,7 @@ export default function Settings() {
   const [pw, setPw] = useState({ now: '', next: '', again: '' })
   const [show, setShow] = useState(false)
   const [tried, setTried] = useState(false)
+  const [resetting, setResetting] = useState(false)
   const dirty = f.name !== s.me.name || f.phone !== s.me.phone
   const pwErr = !pw.now ? 'Enter your current password.' : pw.next.length < 8 ? 'Your new password needs at least 8 characters.' : !/[0-9]/.test(pw.next) || !/[A-Za-z]/.test(pw.next) ? 'Use at least one letter and one number.' : pw.next !== pw.again ? 'The two new passwords don’t match.' : ''
 
@@ -50,6 +51,11 @@ export default function Settings() {
           </div>
         )}
       </div>
+      <div className="card card-pad row between wrap">
+        <div><div className="t-h3">Demo data</div><div className="t-small t-muted">Your changes in this preview are saved for this browser session. Reset to start again with the original sample data.</div></div>
+        <Button variant="secondary" icon={RotateCcw} onClick={() => setResetting(true)}>Reset demo data</Button>
+      </div>
+      {resetting && <ConfirmDialog title="Reset demo data?" text="All changes you made in this preview will be removed and the original sample data comes back. You stay signed in." confirm="Reset demo data" danger onClose={() => setResetting(false)} onConfirm={resetDemoData} />}
     </>
   )
 }
