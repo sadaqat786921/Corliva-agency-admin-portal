@@ -1,1 +1,2 @@
 public/** !filter !diff !merge
+src/fonts/** !filter !diff !merge

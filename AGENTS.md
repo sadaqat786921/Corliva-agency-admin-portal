@@ -3,14 +3,14 @@
 Read this before changing anything. This app is a finished, approved design. Do **not** redesign it, restyle it, swap the layout, add Tailwind, add a UI kit, or "modernise" it. Only make the change you are asked for, in the same style.
 
 ## What this is
-CORLIVA is a home care platform. This repo is the **Agency Admin** web portal (the office manager of one home care agency, e.g. "Royality Home Care"). It is a clickable React prototype with demo data held in memory.
+CORLIVA is a home care platform. This repo is the **Agency Admin** web portal (the office manager of one home care agency, e.g. "Royality Home Care"). It is a clickable React prototype with built-in demo data.
 
 ## Stack
-- React 19 + Vite + TypeScript. Plain web app at the top level of the repo: `index.html` (with `<div id="root">`) and entry `src/main.tsx`. No backend, no API calls, no `.env`.
+- React 19 + Vite + TypeScript. Only extra packages: `react-router-dom` and `lucide-react`. Plain web app at the top level of the repo: `index.html` (with `<div id="root">`) and entry `src/main.tsx`. No backend, no API calls, no `.env`.
 - `HashRouter` (keep it — the app must work from any static host and in Figma Make)
 - Icons: `lucide-react` only
 - Styling: plain CSS in `src/styles.css` using CSS variables. **No Tailwind, no CSS reset libraries, no styled-components.**
-- Font: Inter, bundled from the `@fontsource/inter` package (imported in `src/main.tsx`). No Google Fonts link.
+- Font: Inter, from the font files in `src/fonts` (`src/fonts/inter.css`, imported in `src/main.tsx`). No Google Fonts link.
 - Images live in `public/images/` and are referenced with relative paths like `./images/corliva-logo-white.svg`
 
 ## Design system (mirrors the Figma file "Corliva", page "03 · Foundations & Components")
