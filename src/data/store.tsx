@@ -57,6 +57,10 @@ function useStoreValue() {
   const [inbox, setInbox] = usePersist('inbox', seed.inbox)
   const [requests, setRequests] = usePersist('requests', seed.familyRequests)
   const [events, setEvents] = usePersist('events', seed.events)
+  // Billing is view-only in this portal (the Finance Officer manages it)
+  const [billingProfiles] = usePersist('billingProfiles', seed.billingProfiles)
+  const [invoices] = usePersist('invoices', seed.invoices)
+  const [payments] = usePersist('payments', seed.payments)
   const [toasts, setToasts] = useState<Toast[]>([])
 
   const toast = useCallback((text: string, tone: Tone = 'success') => {
@@ -84,7 +88,7 @@ function useStoreValue() {
     branches, setBranches, users, setUsers, lists, setLists, requirements, setRequirements,
     rules, setRules, alerts, setAlerts, referrals, setReferrals, clients, setClients, caregivers,
     visits, setVisits, approvals, setApprovals, incidents, setIncidents, audit, log,
-    inbox, setInbox, requests, setRequests, events, setEvents, toasts, toast,
+    inbox, setInbox, requests, setRequests, events, setEvents, billingProfiles, invoices, payments, toasts, toast,
   }
 }
 

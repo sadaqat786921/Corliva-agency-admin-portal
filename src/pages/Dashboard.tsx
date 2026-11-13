@@ -45,7 +45,7 @@ export default function Dashboard() {
     ...(tomorrowOpen.length ? [{ icon: TriangleAlert, tone: 'danger' as const, title: `${tomorrowOpen.length} visit${tomorrowOpen.length > 1 ? 's' : ''} tomorrow ${tomorrowOpen.length > 1 ? 'have' : 'has'} no caregiver`, sub: `${s.branchName(s.branch)} · Owner: Care Coordinators`, chip: 'Unassigned', action: 'Find caregiver', to: '/schedule?show=open' }] : []),
     ...(waiting.length ? [{ icon: ClipboardCheck, tone: 'warning' as const, title: `${waiting.length} visit${waiting.length > 1 ? 's' : ''} waiting for approval`, sub: 'Owner: Care Supervisors · oldest ' + fmtDate(waiting.map(w => w.date).sort()[0]), chip: 'Waiting', action: 'Open queue', to: '/approvals' }] : []),
     ...blocked.map(c => ({ icon: UserX, tone: 'danger' as const, title: `${c.name}: ${c.issue?.toLowerCase()}`, sub: 'Caregiver · Owner: Lena Ortiz (HR) · can’t be given visits', chip: 'Not ready', action: 'View rule', to: '/rules' })),
-    ...overduePlans.map(c => ({ icon: FileText, tone: 'warning' as const, title: `Care plan review overdue: ${c.name}`, sub: `Client · Owner: ${c.coordinator}`, chip: 'Overdue', action: 'Open client', to: `/clients?open=${c.id}` })),
+    ...overduePlans.map(c => ({ icon: FileText, tone: 'warning' as const, title: `Care plan review overdue: ${c.name}`, sub: `Client · Owner: ${c.coordinator}`, chip: 'Overdue', action: 'Open client', to: `/clients/${c.id}` })),
   ]
 
   const exportDash = () => {

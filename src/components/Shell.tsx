@@ -111,7 +111,7 @@ function Header() {
     const t = q.trim().toLowerCase()
     if (t.length < 2) return []
     const r: { label: string; sub: string; to: string }[] = []
-    s.clients.filter(c => c.name.toLowerCase().includes(t)).forEach(c => r.push({ label: c.name, sub: 'Client · ' + s.branchName(c.branch), to: `/clients?open=${c.id}` }))
+    s.clients.filter(c => c.name.toLowerCase().includes(t)).forEach(c => r.push({ label: c.name, sub: 'Client · ' + s.branchName(c.branch), to: `/clients/${c.id}` }))
     s.caregivers.filter(c => c.name.toLowerCase().includes(t)).forEach(c => r.push({ label: c.name, sub: 'Caregiver · ' + c.readiness, to: `/schedule?caregiver=${c.id}` }))
     s.users.filter(u => u.name.toLowerCase().includes(t)).forEach(u => r.push({ label: u.name, sub: 'Team · ' + u.role, to: `/users?open=${u.id}` }))
     s.referrals.filter(x => x.name.toLowerCase().includes(t) || x.id.toLowerCase().includes(t)).forEach(x => r.push({ label: x.name, sub: `Referral ${x.id} · ${x.stage}`, to: `/referrals/${x.id}` }))

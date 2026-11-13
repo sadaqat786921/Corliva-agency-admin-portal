@@ -14,6 +14,7 @@ import Notifications from './pages/Notifications'
 import Referrals from './pages/Referrals'
 import ReferralDetail from './pages/ReferralDetail'
 import Clients from './pages/Clients'
+import ClientDetail from './pages/ClientDetail'
 import Schedule from './pages/Schedule'
 import Approvals from './pages/Approvals'
 import Incidents from './pages/Incidents'
@@ -56,6 +57,7 @@ export default function App() {
             <Route path="referrals" element={<Referrals />} />
             <Route path="referrals/:id" element={<ReferralDetail />} />
             <Route path="clients" element={<Clients />} />
+            <Route path="clients/:id" element={<ClientDetail />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="approvals" element={<Approvals />} />
             <Route path="incidents" element={<Incidents />} />

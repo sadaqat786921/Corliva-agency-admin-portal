@@ -32,7 +32,7 @@ export interface Referral {
   stageLog: StageEntry[]; qualification: Qualification; assessment: Assessment; decision: Decision
   contacts: ContactRecord[]; history: Note[]
 }
-export interface Client { id: string; name: string; branch: string; status: 'Active' | 'On hold' | 'Discharged'; coordinator: string; services: string; nextVisit: string; carePlan: 'Up to date' | 'Review due' | 'Overdue'; since: string; phone: string; address: string; family: string; fromReferral?: string }
+export interface Client { id: string; name: string; branch: string; status: 'Active' | 'On hold' | 'Discharged'; coordinator: string; services: string; nextVisit: string; carePlan: 'Up to date' | 'Review due' | 'Overdue'; since: string; phone: string; address: string; family: string; fromReferral?: string; payer?: string }
 export interface Caregiver { id: string; name: string; branch: string; readiness: 'Ready' | 'Warning' | 'Blocked'; issue?: string; phone: string }
 export type VisitStatus = 'Scheduled' | 'In progress' | 'Completed' | 'Unassigned' | 'Cancelled'
 export interface Visit { id: string; clientId: string; caregiverId: string | null; date: string; start: string; end: string; branch: string; service: string; status: VisitStatus; override?: string; cancelReason?: string }
@@ -215,6 +215,75 @@ function buildVisits(): Visit[] {
   return out
 }
 export const visits: Visit[] = buildVisits()
+
+
+/* ---------------- Billing (managed by the Finance Officer; Agency Admin can view) ---------------- */
+export type InvoiceStatus = 'Draft' | 'Sent' | 'Paid' | 'Partly paid' | 'Overdue'
+export interface BillingProfile { clientId: string; payer: string; rate: number; billTo: string; billToContact: string; terms: number; period: string }
+export interface Invoice { id: string; clientId: string; from: string; to: string; hours: number; rate: number; services: string; issued: string; due: string; draft?: boolean }
+export interface Payment { id: string; invoiceId: string; clientId: string; date: string; amount: number; method: string; ref: string; by: string }
+
+const PAY: Record<string, [string, number, string, string, number]> = {
+  // clientId: [payer, hourly rate, bills go to, contact, weekly hours]
+  c1: ['Long-term care insurance', 30, 'Lifeway Insurance (claims team)', 'claims@lifeway.example · policy LW-448120', 14],
+  c2: ['Private pay', 32, 'Mark King (son)', '(217) 555-0612 · mark.king@example.com', 6],
+  c3: ['Medicaid waiver', 26, 'Illinois Medicaid waiver program', 'Waiver ID IL-WV-20931', 10],
+  c4: ['Veterans benefits', 30, 'VA Community Care', 'Authorization VA-77310', 12],
+  c5: ['Private pay', 32, 'Jim Fields (son)', '(217) 555-0615', 10],
+  c6: ['Private pay', 32, 'Linda Jenkins (wife)', '(217) 555-0418', 7],
+  c7: ['Private pay', 32, 'Tom Martin (son)', '(217) 555-0617 · tom.martin@example.com', 8],
+  c8: ['Medicaid waiver', 26, 'Illinois Medicaid waiver program', 'Waiver ID IL-WV-19877', 8],
+  c9: ['Long-term care insurance', 30, 'Prairie Mutual (claims)', 'policy PM-30217', 7.5],
+  c10: ['Private pay', 32, 'Leonard Cole', '(217) 555-0320', 8],
+  c11: ['Medicaid waiver', 26, 'Illinois Medicaid waiver program', 'Waiver ID IL-WV-21544', 7],
+  c12: ['Private pay', 32, 'Ruth Grant (wife)', '(217) 555-0622', 15],
+}
+export const billingProfiles: BillingProfile[] = Object.entries(PAY).map(([clientId, [payer, rate, billTo, billToContact]]) => ({ clientId, payer, rate, billTo, billToContact, terms: payer === 'Private pay' ? 14 : 30, period: 'Every 2 weeks' }))
+
+const METHOD: Record<string, string> = { 'Private pay': 'Bank transfer', 'Long-term care insurance': 'Insurance payment', 'Medicaid waiver': 'Medicaid payment', 'Veterans benefits': 'VA payment' }
+function buildBilling() {
+  const invoices: Invoice[] = []; const payments: Payment[] = []
+  let inv = 2000, pay = 900
+  for (const c of clients) {
+    const p = PAY[c.id]; if (!p) continue
+    const [payer, rate, , , weekly] = p
+    const periods = c.status === 'Discharged' ? [3, 4, 5] : c.status === 'On hold' ? [2, 3, 4] : [0, 1, 2, 3]
+    for (const k of periods) {
+      const to = addDays(-4 - 14 * k), from = addDays(-17 - 14 * k), issued = addDays(-3 - 14 * k)
+      const terms = payer === 'Private pay' ? 14 : 30
+      const due = addDays(-3 - 14 * k + terms)
+      const hours = Math.round(weekly * 2 * (k === 1 && c.id === 'c3' ? 0.9 : 1) * 10) / 10
+      const id = 'INV-' + (++inv)
+      const draft = k === 0 && (c.id === 'c1' || c.id === 'c9')
+      invoices.push({ id, clientId: c.id, from, to, hours, rate, services: c.services, issued: draft ? '' : issued, due: draft ? '' : due, draft })
+      const amount = Math.round(hours * rate * 100) / 100
+      const method = METHOD[payer] ?? 'Bank transfer'
+      // Who has paid what (gives a realistic mix of paid, partly paid, overdue and sent)
+      let paid = 0
+      if (k >= 2) paid = amount
+      else if (k === 1) paid = c.id === 'c10' ? 0 : c.id === 'c3' ? Math.round(amount * 0.5) : c.id === 'c7' ? 0 : amount
+      if (paid > 0) payments.push({ id: 'PAY-' + (++pay), invoiceId: id, clientId: c.id, date: addDays(-3 - 14 * k + Math.min(terms - 2, 9)), amount: paid, method, ref: method === 'Bank transfer' ? 'TRF-' + (5000 + pay) : 'REM-' + (8000 + pay), by: 'Omar Haddad' })
+    }
+  }
+  // Number invoices in the order they were made, so newer invoices have higher numbers
+  const order = [...invoices].sort((a, b) => a.from.localeCompare(b.from) || a.clientId.localeCompare(b.clientId, undefined, { numeric: true }))
+  const map = new Map(order.map((x, i) => [x.id, 'INV-' + (2001 + i)]))
+  return { invoices: invoices.map(x => ({ ...x, id: map.get(x.id)! })), payments: payments.map(x => ({ ...x, invoiceId: map.get(x.invoiceId)! })) }
+}
+const built = buildBilling()
+export const invoices: Invoice[] = built.invoices
+export const payments: Payment[] = built.payments
+
+export const invoiceAmount = (i: Invoice) => Math.round(i.hours * i.rate * 100) / 100
+export const invoicePaid = (i: Invoice, pays: Payment[]) => pays.filter(p => p.invoiceId === i.id).reduce((a, p) => a + p.amount, 0)
+export function invoiceStatus(i: Invoice, pays: Payment[]): InvoiceStatus {
+  if (i.draft) return 'Draft'
+  const amt = invoiceAmount(i), paid = invoicePaid(i, pays)
+  if (paid >= amt - 0.005) return 'Paid'
+  if (i.due < TODAY) return 'Overdue'
+  return paid > 0 ? 'Partly paid' : 'Sent'
+}
+export const money = (n: number) => '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 export const approvals: Approval[] = [
   { id: 'p1', visitNo: '#4816', client: 'Robert King', caregiver: 'Grace Mensah', date: addDays(-1), branch: 'north', scheduled: '11:00 – 13:00', actual: '11:04 – 13:02', tasks: '3 of 3 done', flags: [], status: 'Waiting' },

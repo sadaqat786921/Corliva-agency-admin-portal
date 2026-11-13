@@ -63,7 +63,7 @@ export default function ReferralDetail() {
           {open && <Button variant="danger" icon={XCircle} onClick={() => setAct('close')}>{r.stage === 'Decision' ? 'Decline' : 'Close referral'}</Button>}
           {open && r.stage === 'Decision' && <Button icon={UserCheck} disabled={!ready(r)} onClick={() => setAct('convert')}>Accept & make client</Button>}
           {open && next && <Button icon={ArrowRight} disabled={!ready(r)} onClick={() => moveTo(next, `Moved to ${next}.`)}>Move to {next}</Button>}
-          {r.stage === 'Converted' && <Button icon={UserCheck} onClick={() => { const c = s.clients.find(c => c.fromReferral === r.id); nav(c ? `/clients?open=${c.id}` : '/clients') }}>Open client record</Button>}
+          {r.stage === 'Converted' && <Button icon={UserCheck} onClick={() => { const c = s.clients.find(c => c.fromReferral === r.id); nav(c ? `/clients/${c.id}` : '/clients') }}>Open client record</Button>}
         </div>
       </div>
 
@@ -169,7 +169,7 @@ export default function ReferralDetail() {
       }} />}
       {act === 'convert' && <ConvertModal r={r} onClose={() => setAct(null)} onSave={() => {
         const cid = 'c' + Date.now()
-        s.setClients(x => [...x, { id: cid, name: r.name, branch: r.branch, status: 'Active', coordinator: r.owner === 'Unassigned' ? 'Aisha Rahman' : r.owner, services: r.services.join(', '), nextVisit: 'Not planned yet', carePlan: 'Review due', since: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }), phone: r.phone || r.contactPhone, address: r.address, family: `${r.contact} (${r.relationship.toLowerCase()})`, fromReferral: r.id }])
+        s.setClients(x => [...x, { id: cid, name: r.name, branch: r.branch, status: 'Active', coordinator: r.owner === 'Unassigned' ? 'Aisha Rahman' : r.owner, services: r.services.join(', '), nextVisit: 'Not planned yet', carePlan: 'Review due', since: new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }), phone: r.phone || r.contactPhone, address: r.address, family: `${r.contact} (${r.relationship.toLowerCase()})`, fromReferral: r.id, payer: r.qualification.funding || undefined }])
         update(x => ({ stage: 'Converted', outcome: 'Accepted and set up as a client', decision: { ...x.decision, result: 'Accepted', by: s.me.name, date: TODAY }, stageLog: [...x.stageLog, { stage: 'Converted', date: TODAY, time: nowTime(), by: s.me.name }] }), 'Accepted and converted to a client.')
         s.log({ type: 'Referral', action: 'Converted a referral to a client', record: `${r.id} → ${r.name}`, before: 'Decision', after: 'Client' })
         s.toast(`${r.name} is now a client`); setAct(null)
@@ -425,7 +425,7 @@ function ConvertedRecord({ r }: { r: Referral }) {
         <dt>Care starts</dt><dd>{long(r.decision.startDate)}</dd>
         <dt>Client record</dt><dd>{c ? `${c.name} · ${c.status} · coordinator ${c.coordinator}` : '—'}</dd>
       </dl>
-      {c && <div><Button variant="secondary" icon={UserCheck} onClick={() => nav(`/clients?open=${c.id}`)}>Open client record</Button></div>}
+      {c && <div><Button variant="secondary" icon={UserCheck} onClick={() => nav(`/clients/${c.id}`)}>Open client record</Button></div>}
     </div>
   )
 }

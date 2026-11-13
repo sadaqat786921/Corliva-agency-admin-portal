@@ -36,7 +36,8 @@ The client is non-technical and over 50. Use short, plain English: "Switch off",
 ```
 src/
   styles.css            design tokens + all component styles
-  data/seed.ts          demo data (dates are relative to today)
+  data/seed.ts          demo data (dates are relative to today), incl. billing profiles, invoices, payments
+  data/referrals.ts     referral stage rules (what's needed to move on)
   data/store.tsx        app state, toasts, audit log, CSV download
   components/ui.tsx     Button, Field, Input, Select, Chip, Modal, Drawer, Tabs, Toggle, StatTile, AlertBanner, EmptyState, ReasonDialog, RowMenu, Pager
   components/Shell.tsx  sidebar + header (search, branch filter, alerts, family requests, profile menu)
@@ -66,7 +67,11 @@ All data is sample data in `src/data/seed.ts`. Every change (invites, approvals,
   - **To move on** checklist (rules in `src/data/referrals.ts`). Moving is **manual**: the "Move to …" button only works when the checklist is done. "Move on anyway" and "Go back" need a written reason.
   - Decision stage: "Accept & make client" (duplicate-name check, creates the client) or "Decline" (reason). Closing at any stage keeps every record.
   - Person summary, owner change (with reason), and an Activity list of every change.
-- **Clients** — open a client to change coordinator or put on hold / restart care.
+- **Clients** — list with filters. Clicking a client opens their **own full screen** (`/clients/:id`, `src/pages/ClientDetail.tsx`) with tabs:
+  - **Overview** — details, family linked, coordinator, care plan, how care is paid, upcoming visits, link back to the referral they came from.
+  - **Visits** — upcoming and past visits; click one to open it in Schedule.
+  - **Billing (view only)** — the Finance Officer manages invoices and payments; the Agency Admin only views. Shows owed now, overdue, paid in last 90 days, approved visits not yet invoiced; how care is paid (payer, hourly rate, who bills go to, terms); invoices (Draft / Sent / Partly paid / Paid / Overdue — click for lines and payments); payments recorded (date, amount, how paid, invoice, reference, recorded by). CORLIVA does not take payments; Finance records money received outside the platform. Sent invoices are never edited.
+  - Header actions: change coordinator, put on hold / restart care (both need a reason).
 - **Schedule** — week board and list; open a visit to assign a caregiver (blocked caregivers need an override with a reason) or cancel (one or all repeats).
 - **Visit Approvals** — approve one or many, or "Send back to fix" with a reason.
 - **Incidents** — report an incident; set owner and date, move status, close with a final note.
