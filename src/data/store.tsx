@@ -47,7 +47,7 @@ function useStoreValue() {
   const [requirements, setRequirements] = usePersist('requirements', seed.requirements)
   const [rules, setRules] = usePersist('rules', seed.rules)
   const [alerts, setAlerts] = usePersist('alerts', seed.alerts)
-  const [referrals, setReferrals] = usePersist('referrals', seed.referrals)
+  const [referrals, setReferrals] = usePersist('referrals.v2', seed.referrals)
   const [clients, setClients] = usePersist('clients', seed.clients)
   const [caregivers] = usePersist('caregivers', seed.caregivers)
   const [visits, setVisits] = usePersist('visits', seed.visits)

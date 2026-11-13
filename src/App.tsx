@@ -12,6 +12,7 @@ import Services from './pages/Services'
 import Rules from './pages/Rules'
 import Notifications from './pages/Notifications'
 import Referrals from './pages/Referrals'
+import ReferralDetail from './pages/ReferralDetail'
 import Clients from './pages/Clients'
 import Schedule from './pages/Schedule'
 import Approvals from './pages/Approvals'
@@ -53,6 +54,7 @@ export default function App() {
             <Route path="rules" element={<Rules />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="referrals" element={<Referrals />} />
+            <Route path="referrals/:id" element={<ReferralDetail />} />
             <Route path="clients" element={<Clients />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="approvals" element={<Approvals />} />

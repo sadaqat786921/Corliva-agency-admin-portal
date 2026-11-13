@@ -18,7 +18,20 @@ export interface ListItem { id: string; name: string; active: boolean; note?: st
 export interface Requirement { id: string; name: string; appliesTo: 'Caregiver' | 'Client'; level: 'Blocking' | 'Warning'; renewMonths: number | null; evidence: boolean; active: boolean }
 export type Stage = 'Enquiry' | 'Qualification' | 'Assessment' | 'Decision' | 'Converted' | 'Closed'
 export interface Note { by: string; at: string; text: string }
-export interface Referral { id: string; name: string; source: string; contact: string; phone: string; services: string; urgency: 'Routine' | 'Soon' | 'Urgent'; owner: string; stage: Stage; branch: string; days: number; missing: string[]; preferredTimes: string; outcome?: string; history: Note[] }
+export type ContactType = 'Phone call' | 'Text message' | 'Email' | 'Home visit' | 'Letter'
+export interface ContactRecord { id: string; date: string; time: string; by: string; type: ContactType; direction: 'Outgoing' | 'Incoming'; withWhom: string; summary: string; outcome: string; response: string; followUp?: string; stage: Stage }
+export interface StageEntry { stage: Stage | 'Closed'; date: string; time: string; by: string; note?: string }
+export interface Qualification { area: boolean; service: boolean; times: boolean; funding: string; notes: string }
+export interface Assessment { status: 'Not booked' | 'Booked' | 'Done'; date: string; time: string; assessor: string; where: string; needs: string; risks: string; mobility: string; hours: number | null; recommended: string; notes: string; doneBy?: string; doneDate?: string }
+export interface Decision { agreementSigned: boolean; startDate: string; result?: 'Accepted' | 'Declined'; reason?: string; by?: string; date?: string }
+export interface Referral {
+  id: string; name: string; dob: string; address: string; phone: string; email: string
+  contact: string; relationship: string; contactPhone: string
+  source: string; services: string[]; urgency: 'Routine' | 'Soon' | 'Urgent'; preferredTimes: string; reasonForCare: string
+  owner: string; stage: Stage; branch: string; outcome?: string; closedAt?: Stage
+  stageLog: StageEntry[]; qualification: Qualification; assessment: Assessment; decision: Decision
+  contacts: ContactRecord[]; history: Note[]
+}
 export interface Client { id: string; name: string; branch: string; status: 'Active' | 'On hold' | 'Discharged'; coordinator: string; services: string; nextVisit: string; carePlan: 'Up to date' | 'Review due' | 'Overdue'; since: string; phone: string; address: string; family: string; fromReferral?: string }
 export interface Caregiver { id: string; name: string; branch: string; readiness: 'Ready' | 'Warning' | 'Blocked'; issue?: string; phone: string }
 export type VisitStatus = 'Scheduled' | 'In progress' | 'Completed' | 'Unassigned' | 'Cancelled'
@@ -151,7 +164,7 @@ export const clients: Client[] = [
   { id: 'c3', name: 'Evelyn Price', branch: 'south', status: 'Active', coordinator: 'Daniel Reed', services: 'Homemaking, Personal care', nextVisit: 'Today 13:00', carePlan: 'Review due', since: 'Aug 2025', phone: '(217) 555-0313', address: '72 River Rd, Springfield', family: 'None linked' },
   { id: 'c4', name: 'Walter Brooks', branch: 'south', status: 'Active', coordinator: 'Daniel Reed', services: 'Respite care', nextVisit: 'Tomorrow 08:00', carePlan: 'Up to date', since: 'Jun 2026', phone: '(217) 555-0314', address: '5 Pine Ct, Springfield', family: 'Ann Brooks (wife)' },
   { id: 'c5', name: 'Dorothy Fields', branch: 'north', status: 'On hold', coordinator: 'Aisha Rahman', services: 'Personal care', nextVisit: 'Paused', carePlan: 'Up to date', since: 'Nov 2024', phone: '(217) 555-0315', address: '31 Maple Dr, Springfield', family: 'Jim Fields (son)' },
-  { id: 'c6', name: 'Harold Jenkins', branch: 'north', status: 'Active', coordinator: 'Aisha Rahman', services: 'Medication reminders', nextVisit: 'Today 15:00', carePlan: 'Up to date', since: 'Sep 2026', phone: '(217) 555-0316', address: '88 Cedar Ave, Springfield', family: 'Linda Jenkins (wife)' },
+  { id: 'c6', name: 'Harold Jenkins', branch: 'north', status: 'Active', coordinator: 'Aisha Rahman', services: 'Medication reminders', nextVisit: 'Today 15:00', carePlan: 'Up to date', since: 'Sep 2026', phone: '(217) 555-0316', address: '88 Cedar Ave, Springfield', family: 'Linda Jenkins (wife)', fromReferral: 'R-1020' },
   { id: 'c7', name: 'Rose Martin', branch: 'south', status: 'Active', coordinator: 'Daniel Reed', services: 'Companionship, Homemaking', nextVisit: 'Tomorrow 10:00', carePlan: 'Up to date', since: 'Feb 2026', phone: '(217) 555-0317', address: '19 Birch St, Springfield', family: 'Tom Martin (son)' },
   { id: 'c9', name: 'Edith Morris', branch: 'north', status: 'Active', coordinator: 'Aisha Rahman', services: 'Personal care', nextVisit: 'Tomorrow 08:00', carePlan: 'Up to date', since: 'May 2026', phone: '(217) 555-0319', address: '40 Grove St, Springfield', family: 'Paul Morris (son)' },
   { id: 'c10', name: 'Leonard Cole', branch: 'south', status: 'Active', coordinator: 'Daniel Reed', services: 'Homemaking', nextVisit: 'Today 14:00', carePlan: 'Review due', since: 'Jul 2026', phone: '(217) 555-0320', address: '11 Ash Way, Springfield', family: 'None linked' },
@@ -212,15 +225,150 @@ export const approvals: Approval[] = [
   { id: 'p6', visitNo: '#4781', client: 'Walter Brooks', caregiver: 'James Carter', date: addDays(-3), branch: 'south', scheduled: '08:00 – 12:00', actual: '08:05 – 12:00', tasks: '2 of 2 done', flags: [], status: 'Approved' },
 ]
 
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+/** Display stamp like "12 Nov, 10:15" for a day offset from today. */
+export const stampFor = (dayOffset: number, time: string) => { const d = new Date(); d.setDate(d.getDate() + dayOffset); return `${d.getDate()} ${MON[d.getMonth()]}, ${time}` }
+
+const Q0: Qualification = { area: false, service: false, times: false, funding: '', notes: '' }
+const A0: Assessment = { status: 'Not booked', date: '', time: '', assessor: '', where: 'Client’s home', needs: '', risks: '', mobility: '', hours: null, recommended: '', notes: '' }
+const D0: Decision = { agreementSigned: false, startDate: '' }
+let cn = 0
+const C = (day: number, time: string, by: string, type: ContactType, direction: ContactRecord['direction'], withWhom: string, summary: string, outcome: string, response: string, stage: Stage, followUp?: string): ContactRecord =>
+  ({ id: 'k' + (++cn), date: addDays(day), time, by, type, direction, withWhom, summary, outcome, response, stage, followUp: followUp ? addDays(Number(followUp)) : undefined })
+const L = (stage: StageEntry['stage'], day: number, time: string, by: string, note?: string): StageEntry => ({ stage, date: addDays(day), time, by, note })
+const H = (day: number, time: string, by: string, text: string): Note => ({ by, at: stampFor(day, time), text })
+
+export const FUNDING = ['Private pay', 'Long-term care insurance', 'Medicaid waiver', 'Veterans benefits', 'Other']
+export const CONTACT_OUTCOMES = ['Spoke to them', 'Left a message', 'No answer', 'Sent information', 'They asked for a call back', 'Not interested']
+
 export const referrals: Referral[] = [
-  { id: 'R-1042', name: 'Alice Turner', source: 'Hospital discharge', contact: 'Nurse Kim (St. Mary’s)', phone: '(217) 555-0411', services: 'Personal care', urgency: 'Urgent', owner: 'Aisha Rahman', stage: 'Enquiry', branch: 'north', days: 0, missing: ['Home address'], preferredTimes: 'Mornings, 7 days', history: [{ by: 'Aisha Rahman', at: 'Today 08:40', text: 'Referral created from hospital call.' }] },
-  { id: 'R-1041', name: 'George Bell', source: 'Family or friend', contact: 'Carol Bell (daughter)', phone: '(217) 555-0412', services: 'Companionship', urgency: 'Routine', owner: 'Daniel Reed', stage: 'Enquiry', branch: 'south', days: 1, missing: [], preferredTimes: 'Weekday afternoons', history: [{ by: 'Daniel Reed', at: 'Yesterday', text: 'Referral created.' }] },
-  { id: 'R-1039', name: 'Nancy Ward', source: 'Doctor’s office', contact: 'Dr. Patel', phone: '(217) 555-0413', services: 'Personal care, Homemaking', urgency: 'Soon', owner: 'Aisha Rahman', stage: 'Qualification', branch: 'north', days: 2, missing: ['Funding source'], preferredTimes: 'Mon, Wed, Fri mornings', history: [{ by: 'Aisha Rahman', at: '2 days ago', text: 'Moved to Qualification.' }] },
-  { id: 'R-1036', name: 'Paul Rivera', source: 'Website enquiry', contact: 'Paul Rivera', phone: '(217) 555-0414', services: 'Respite care', urgency: 'Routine', owner: 'Unassigned', stage: 'Qualification', branch: 'south', days: 4, missing: ['Owner'], preferredTimes: 'Weekends', history: [{ by: 'System', at: '4 days ago', text: 'Website enquiry received.' }] },
-  { id: 'R-1033', name: 'Betty Collins', source: 'Insurance or care manager', contact: 'Jo Adams (care manager)', phone: '(217) 555-0415', services: 'Personal care', urgency: 'Soon', owner: 'Aisha Rahman', stage: 'Assessment', branch: 'north', days: 1, missing: [], preferredTimes: 'Daily, 8–10am', history: [{ by: 'Aisha Rahman', at: 'Yesterday', text: 'Home assessment booked for Friday.' }] },
-  { id: 'R-1030', name: 'Arthur Lane', source: 'Hospital discharge', contact: 'Ward 4B', phone: '(217) 555-0416', services: 'Personal care, Medication reminders', urgency: 'Urgent', owner: 'Daniel Reed', stage: 'Decision', branch: 'south', days: 4, missing: ['Signed service agreement'], preferredTimes: 'Twice daily', history: [{ by: 'Daniel Reed', at: '4 days ago', text: 'Assessment done. Waiting on signed agreement.' }] },
-  { id: 'R-1028', name: 'Linda Shaw', source: 'Family or friend', contact: 'Mike Shaw (son)', phone: '(217) 555-0417', services: 'Companionship', urgency: 'Routine', owner: 'Aisha Rahman', stage: 'Decision', branch: 'north', days: 1, missing: [], preferredTimes: 'Tue and Thu', history: [{ by: 'Aisha Rahman', at: 'Yesterday', text: 'Assessment done. Ready for a decision.' }] },
-  { id: 'R-1020', name: 'Harold Jenkins', source: 'Doctor’s office', contact: 'Dr. Patel', phone: '(217) 555-0418', services: 'Medication reminders', urgency: 'Soon', owner: 'Aisha Rahman', stage: 'Converted', branch: 'north', days: 0, missing: [], preferredTimes: 'Afternoons', outcome: 'Accepted and set up as a client', history: [{ by: 'Aisha Rahman', at: 'Sep 2026', text: 'Converted to client.' }] },
+  {
+    id: 'R-1042', name: 'Alice Turner', dob: '1941-03-14', address: '', phone: '(217) 555-0451', email: '',
+    contact: 'Nurse Kim, St. Mary’s Hospital', relationship: 'Hospital discharge nurse', contactPhone: '(217) 555-0411',
+    source: 'Hospital discharge', services: ['Personal care'], urgency: 'Urgent', preferredTimes: 'Mornings, 7 days', reasonForCare: 'Going home after a hip operation. Needs help washing and dressing for about 6 weeks.',
+    owner: 'Aisha Rahman', stage: 'Enquiry', branch: 'north',
+    stageLog: [L('Enquiry', 0, '08:40', 'Aisha Rahman', 'Created from a hospital phone call')],
+    qualification: { ...Q0 }, assessment: { ...A0 }, decision: { ...D0 },
+    contacts: [C(0, '08:35', 'Aisha Rahman', 'Phone call', 'Incoming', 'Nurse Kim (St. Mary’s)', 'Hospital called about Alice going home on Monday after a hip operation.', 'Spoke to them', 'Discharge is Monday morning. Nurse will send the discharge summary. Home address to follow from the family.', 'Enquiry', '0')],
+    history: [H(0, '08:40', 'Aisha Rahman', 'Referral created.')],
+  },
+  {
+    id: 'R-1041', name: 'George Bell', dob: '1938-11-02', address: '17 Linden St, Springfield, IL 62704', phone: '(217) 555-0452', email: '',
+    contact: 'Carol Bell', relationship: 'Daughter', contactPhone: '(217) 555-0412',
+    source: 'Family or friend', services: ['Companionship', 'Homemaking'], urgency: 'Routine', preferredTimes: 'Weekday afternoons', reasonForCare: 'Lives alone and is getting lonely. Daughter works full time and would like someone to visit and help around the house.',
+    owner: 'Daniel Reed', stage: 'Enquiry', branch: 'south',
+    stageLog: [L('Enquiry', -1, '14:10', 'Daniel Reed')],
+    qualification: { ...Q0 }, assessment: { ...A0 }, decision: { ...D0 },
+    contacts: [
+      C(-1, '14:05', 'Daniel Reed', 'Phone call', 'Incoming', 'Carol Bell (daughter)', 'Carol called asking about companionship visits for her father.', 'Spoke to them', 'Wants 2–3 afternoons a week. Asked for prices by email.', 'Enquiry'),
+      C(-1, '15:30', 'Daniel Reed', 'Email', 'Outgoing', 'Carol Bell (daughter)', 'Sent our services leaflet and price list.', 'Sent information', 'Carol replied: “Thanks, this looks right. Happy to go ahead.”', 'Enquiry'),
+    ],
+    history: [H(-1, '14:10', 'Daniel Reed', 'Referral created.')],
+  },
+  {
+    id: 'R-1039', name: 'Nancy Ward', dob: '1944-06-21', address: '52 Oak Hollow Rd, Springfield, IL 62702', phone: '(217) 555-0453', email: 'nancy.ward@example.com',
+    contact: 'Dr. Patel, Westside Clinic', relationship: 'Family doctor', contactPhone: '(217) 555-0413',
+    source: 'Doctor’s office', services: ['Personal care', 'Homemaking'], urgency: 'Soon', preferredTimes: 'Mon, Wed, Fri mornings', reasonForCare: 'Arthritis is making washing and cooking hard. Doctor recommends help 3 mornings a week.',
+    owner: 'Aisha Rahman', stage: 'Qualification', branch: 'north',
+    stageLog: [L('Enquiry', -4, '10:00', 'Aisha Rahman'), L('Qualification', -2, '11:20', 'Aisha Rahman')],
+    qualification: { area: true, service: true, times: true, funding: '', notes: 'Nancy thinks she has long-term care insurance but needs to find the policy.' }, assessment: { ...A0 }, decision: { ...D0 },
+    contacts: [
+      C(-4, '09:45', 'Aisha Rahman', 'Email', 'Incoming', 'Dr. Patel', 'Referral letter received from Westside Clinic.', 'Sent information', 'Letter asks for personal care and meal help.', 'Enquiry'),
+      C(-3, '10:30', 'Aisha Rahman', 'Phone call', 'Outgoing', 'Nancy Ward', 'Called Nancy to introduce ourselves and check she wants care.', 'Spoke to them', 'Nancy is keen. Mornings suit her best.', 'Enquiry'),
+      C(-1, '16:00', 'Aisha Rahman', 'Phone call', 'Outgoing', 'Nancy Ward', 'Asked how the care will be paid for.', 'They asked for a call back', 'Nancy will look for her insurance policy and call back on Monday.', 'Qualification', '2'),
+    ],
+    history: [H(-4, '10:00', 'Aisha Rahman', 'Referral created.'), H(-2, '11:20', 'Aisha Rahman', 'Moved to Qualification.')],
+  },
+  {
+    id: 'R-1036', name: 'Paul Rivera', dob: '1950-01-30', address: '9 Kent Ave, Springfield, IL 62704', phone: '(217) 555-0414', email: 'paul.rivera@example.com',
+    contact: 'Paul Rivera', relationship: 'Self', contactPhone: '(217) 555-0414',
+    source: 'Website enquiry', services: ['Respite care'], urgency: 'Routine', preferredTimes: 'Weekends', reasonForCare: 'Cares for his wife and needs a break at weekends.',
+    owner: 'Unassigned', stage: 'Qualification', branch: 'south',
+    stageLog: [L('Enquiry', -6, '09:00', 'System', 'Website form'), L('Qualification', -4, '12:00', 'Daniel Reed')],
+    qualification: { area: true, service: true, times: false, funding: 'Private pay', notes: '' }, assessment: { ...A0 }, decision: { ...D0 },
+    contacts: [
+      C(-6, '09:00', 'System', 'Email', 'Incoming', 'Paul Rivera', 'Website enquiry form received.', 'Sent information', 'Asks for weekend respite so he can rest.', 'Enquiry'),
+      C(-5, '11:00', 'Daniel Reed', 'Phone call', 'Outgoing', 'Paul Rivera', 'Called to talk through respite care.', 'Spoke to them', 'Wants Saturday and Sunday, 9am–1pm. Will pay privately.', 'Enquiry'),
+    ],
+    history: [H(-6, '09:00', 'System', 'Referral created from the website.'), H(-4, '12:00', 'Daniel Reed', 'Moved to Qualification.'), H(-3, '09:00', 'Daniel Reed', 'Daniel went on leave. Referral has no owner.')],
+  },
+  {
+    id: 'R-1033', name: 'Betty Collins', dob: '1936-09-08', address: '3 Primrose Ln, Springfield, IL 62701', phone: '(217) 555-0455', email: '',
+    contact: 'Jo Adams, Prairie Care Management', relationship: 'Care manager', contactPhone: '(217) 555-0415',
+    source: 'Insurance or care manager', services: ['Personal care'], urgency: 'Soon', preferredTimes: 'Daily, 8–10am', reasonForCare: 'Needs help getting up and dressed each morning after a stroke last year.',
+    owner: 'Aisha Rahman', stage: 'Assessment', branch: 'north',
+    stageLog: [L('Enquiry', -7, '10:15', 'Aisha Rahman'), L('Qualification', -5, '09:30', 'Aisha Rahman'), L('Assessment', -1, '15:00', 'Aisha Rahman')],
+    qualification: { area: true, service: true, times: true, funding: 'Long-term care insurance', notes: 'Policy number confirmed by the care manager.' },
+    assessment: { ...A0, status: 'Booked', date: addDays(1), time: '10:00', assessor: 'Michael Brooks', where: 'Client’s home' }, decision: { ...D0 },
+    contacts: [
+      C(-7, '10:00', 'Aisha Rahman', 'Phone call', 'Incoming', 'Jo Adams (care manager)', 'Care manager referred Betty for morning personal care.', 'Spoke to them', 'Insurance will cover 10 hours a week.', 'Enquiry'),
+      C(-6, '14:00', 'Aisha Rahman', 'Phone call', 'Outgoing', 'Betty Collins', 'Introduced the agency to Betty.', 'Spoke to them', 'Happy for us to visit. Prefers early mornings.', 'Enquiry'),
+      C(-5, '09:15', 'Aisha Rahman', 'Email', 'Incoming', 'Jo Adams (care manager)', 'Insurance details sent.', 'Sent information', 'Policy covers personal care, 10 hours a week.', 'Qualification'),
+      C(-1, '14:45', 'Aisha Rahman', 'Text message', 'Outgoing', 'Betty Collins', 'Confirmed the home assessment time.', 'Spoke to them', 'Betty replied “Yes, see you then.”', 'Assessment'),
+    ],
+    history: [H(-7, '10:15', 'Aisha Rahman', 'Referral created.'), H(-5, '09:30', 'Aisha Rahman', 'Moved to Qualification.'), H(-1, '15:00', 'Aisha Rahman', 'Moved to Assessment. Home visit booked with Michael Brooks.')],
+  },
+  {
+    id: 'R-1030', name: 'Arthur Lane', dob: '1939-04-11', address: '61 Station Rd, Springfield, IL 62703', phone: '(217) 555-0456', email: '',
+    contact: 'Margaret Lane', relationship: 'Wife', contactPhone: '(217) 555-0416',
+    source: 'Hospital discharge', services: ['Personal care', 'Medication reminders'], urgency: 'Urgent', preferredTimes: 'Twice daily, 8am and 6pm', reasonForCare: 'Home from hospital after a chest infection. Weak and needs help morning and evening.',
+    owner: 'Daniel Reed', stage: 'Decision', branch: 'south',
+    stageLog: [L('Enquiry', -10, '11:00', 'Daniel Reed'), L('Qualification', -9, '10:00', 'Daniel Reed'), L('Assessment', -7, '16:00', 'Daniel Reed'), L('Decision', -5, '13:00', 'Priya Shah')],
+    qualification: { area: true, service: true, times: true, funding: 'Medicaid waiver', notes: 'Waiver approved for 14 hours a week.' },
+    assessment: { status: 'Done', date: addDays(-5), time: '11:00', assessor: 'Priya Shah', where: 'Client’s home', needs: 'Help with washing, dressing and getting to the toilet. Reminders for 4 daily medicines.', risks: 'Loose rug in the hallway. Steep stairs to the bathroom.', mobility: 'Walks with a frame', hours: 14, recommended: 'Personal care, Medication reminders', notes: 'Wife is very supportive but cannot lift him.', doneBy: 'Priya Shah', doneDate: addDays(-5) },
+    decision: { agreementSigned: false, startDate: addDays(2) },
+    contacts: [
+      C(-10, '10:40', 'Daniel Reed', 'Phone call', 'Incoming', 'Ward 4B nurse', 'Hospital asked for care to start on discharge.', 'Spoke to them', 'Discharge planned within the week.', 'Enquiry'),
+      C(-9, '09:30', 'Daniel Reed', 'Phone call', 'Outgoing', 'Margaret Lane (wife)', 'Checked times and payment.', 'Spoke to them', 'Morning and evening visits. Medicaid waiver in place.', 'Qualification'),
+      C(-5, '11:00', 'Priya Shah', 'Home visit', 'Outgoing', 'Arthur and Margaret Lane', 'Home assessment done.', 'Spoke to them', 'Both happy with the plan. Agreement left with Margaret to sign.', 'Assessment'),
+      C(-3, '10:00', 'Daniel Reed', 'Phone call', 'Outgoing', 'Margaret Lane (wife)', 'Asked about the signed service agreement.', 'Left a message', 'No answer. Left a voicemail.', 'Decision', '0'),
+    ],
+    history: [H(-10, '11:00', 'Daniel Reed', 'Referral created.'), H(-9, '10:00', 'Daniel Reed', 'Moved to Qualification.'), H(-7, '16:00', 'Daniel Reed', 'Moved to Assessment.'), H(-5, '13:00', 'Priya Shah', 'Assessment saved. Moved to Decision.')],
+  },
+  {
+    id: 'R-1028', name: 'Linda Shaw', dob: '1947-12-03', address: '24 Willow Way, Springfield, IL 62701', phone: '(217) 555-0457', email: 'mike.shaw@example.com',
+    contact: 'Mike Shaw', relationship: 'Son', contactPhone: '(217) 555-0417',
+    source: 'Family or friend', services: ['Companionship'], urgency: 'Routine', preferredTimes: 'Tue and Thu, 1–4pm', reasonForCare: 'Early memory loss. Son wants company for her and a gentle walk twice a week.',
+    owner: 'Aisha Rahman', stage: 'Decision', branch: 'north',
+    stageLog: [L('Enquiry', -9, '12:00', 'Aisha Rahman'), L('Qualification', -8, '10:00', 'Aisha Rahman'), L('Assessment', -6, '09:00', 'Aisha Rahman'), L('Decision', -1, '16:30', 'Michael Brooks')],
+    qualification: { area: true, service: true, times: true, funding: 'Private pay', notes: '' },
+    assessment: { status: 'Done', date: addDays(-1), time: '14:00', assessor: 'Michael Brooks', where: 'Client’s home', needs: 'Company and conversation, a short walk, a light snack.', risks: 'May forget to lock the back door.', mobility: 'Walks without help', hours: 6, recommended: 'Companionship', notes: 'Lovely lady, enjoys gardening.', doneBy: 'Michael Brooks', doneDate: addDays(-1) },
+    decision: { agreementSigned: true, startDate: addDays(5) },
+    contacts: [
+      C(-9, '11:30', 'Aisha Rahman', 'Phone call', 'Incoming', 'Mike Shaw (son)', 'Mike asked about companionship for his mother.', 'Spoke to them', 'Tuesdays and Thursdays suit. Will pay privately.', 'Enquiry'),
+      C(-1, '14:00', 'Michael Brooks', 'Home visit', 'Outgoing', 'Linda and Mike Shaw', 'Home assessment done.', 'Spoke to them', 'Both keen to start. Agreement signed during the visit.', 'Assessment'),
+    ],
+    history: [H(-9, '12:00', 'Aisha Rahman', 'Referral created.'), H(-8, '10:00', 'Aisha Rahman', 'Moved to Qualification.'), H(-6, '09:00', 'Aisha Rahman', 'Moved to Assessment.'), H(-1, '16:30', 'Michael Brooks', 'Assessment saved. Moved to Decision.')],
+  },
+  {
+    id: 'R-1020', name: 'Harold Jenkins', dob: '1940-08-19', address: '88 Cedar Ave, Springfield, IL 62701', phone: '(217) 555-0316', email: '',
+    contact: 'Linda Jenkins', relationship: 'Wife', contactPhone: '(217) 555-0418',
+    source: 'Doctor’s office', services: ['Medication reminders'], urgency: 'Soon', preferredTimes: 'Afternoons', reasonForCare: 'Keeps forgetting his afternoon medicines.',
+    owner: 'Aisha Rahman', stage: 'Converted', branch: 'north', outcome: 'Accepted and set up as a client',
+    stageLog: [L('Enquiry', -60, '10:00', 'Aisha Rahman'), L('Qualification', -58, '10:00', 'Aisha Rahman'), L('Assessment', -55, '10:00', 'Aisha Rahman'), L('Decision', -52, '15:00', 'Michael Brooks'), L('Converted', -50, '09:00', 'Aisha Rahman')],
+    qualification: { area: true, service: true, times: true, funding: 'Private pay', notes: '' },
+    assessment: { status: 'Done', date: addDays(-52), time: '13:00', assessor: 'Michael Brooks', where: 'Client’s home', needs: 'Reminder to take 3 afternoon medicines and drink water.', risks: 'None found.', mobility: 'Walks with a stick', hours: 7, recommended: 'Medication reminders', notes: '', doneBy: 'Michael Brooks', doneDate: addDays(-52) },
+    decision: { agreementSigned: true, startDate: addDays(-48), result: 'Accepted', by: 'Aisha Rahman', date: addDays(-50) },
+    contacts: [
+      C(-60, '09:40', 'Aisha Rahman', 'Email', 'Incoming', 'Dr. Patel', 'Referral letter received.', 'Sent information', 'Asks for daily medication reminders.', 'Enquiry'),
+      C(-58, '11:00', 'Aisha Rahman', 'Phone call', 'Outgoing', 'Linda Jenkins (wife)', 'Talked through the service and costs.', 'Spoke to them', 'Happy to go ahead, afternoons best.', 'Qualification'),
+      C(-52, '13:00', 'Michael Brooks', 'Home visit', 'Outgoing', 'Harold and Linda Jenkins', 'Home assessment done.', 'Spoke to them', 'Agreement signed.', 'Assessment'),
+    ],
+    history: [H(-60, '10:00', 'Aisha Rahman', 'Referral created.'), H(-50, '09:00', 'Aisha Rahman', 'Accepted and converted to a client.')],
+  },
+  {
+    id: 'R-1015', name: 'Ruth Adler', dob: '1943-02-17', address: '12 Brook St, Springfield, IL 62704', phone: '(217) 555-0459', email: '',
+    contact: 'Sam Adler', relationship: 'Son', contactPhone: '(217) 555-0419',
+    source: 'Family or friend', services: ['Respite care'], urgency: 'Routine', preferredTimes: 'One week in December', reasonForCare: 'Son needs cover while he is away for a week.',
+    owner: 'Daniel Reed', stage: 'Closed', closedAt: 'Qualification', branch: 'south', outcome: 'Withdrawn by family: they found a family member to help instead.',
+    stageLog: [L('Enquiry', -20, '10:00', 'Daniel Reed'), L('Qualification', -18, '10:00', 'Daniel Reed'), L('Closed', -12, '15:00', 'Daniel Reed', 'Withdrawn by family')],
+    qualification: { area: true, service: true, times: false, funding: 'Private pay', notes: 'Needs 24-hour cover for a week. We can only offer daytime.' }, assessment: { ...A0 }, decision: { ...D0 },
+    contacts: [
+      C(-20, '09:50', 'Daniel Reed', 'Phone call', 'Incoming', 'Sam Adler (son)', 'Sam asked about a week of respite care.', 'Spoke to them', 'Needs cover 18–25 December.', 'Enquiry'),
+      C(-12, '14:30', 'Daniel Reed', 'Phone call', 'Incoming', 'Sam Adler (son)', 'Sam called to cancel.', 'Not interested', 'His sister will stay with their mother instead. Thanked us.', 'Qualification'),
+    ],
+    history: [H(-20, '10:00', 'Daniel Reed', 'Referral created.'), H(-12, '15:00', 'Daniel Reed', 'Closed: withdrawn by family.')],
+  },
 ]
 
 export const incidents: Incident[] = [

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react'
 import { Download, Info, UserPlus, CalendarCheck, Clock, Users, ShieldCheck, Receipt } from 'lucide-react'
 import { useStore, fmtDate, downloadCsv } from '../data/store'
 import { TODAY, addDays } from '../data/seed'
+import { daysInStage, isOpen } from '../data/referrals'
 import { Button, CardHead, Chip, EmptyState, Field, Input, PageHead, Select } from '../components/ui'
 
 const REPORTS = [
@@ -33,7 +34,7 @@ export default function Reports() {
     if (rid === 'referrals') {
       const r = s.referrals.filter(x => inB(x.branch))
       return { tiles: [['Total', r.length], ['In progress', r.filter(x => !['Converted', 'Closed'].includes(x.stage)).length], ['Converted', r.filter(x => x.stage === 'Converted').length], ['Closed', r.filter(x => x.stage === 'Closed').length]],
-        head: ['Number', 'Name', 'Stage', 'Source', 'Owner', 'Days in stage'], rows: r.map(x => [x.id, x.name, x.stage, x.source, x.owner, x.days]) }
+        head: ['Number', 'Name', 'Stage', 'Source', 'Owner', 'Days in stage'], rows: r.map(x => [x.id, x.name, x.stage, x.source, x.owner, isOpen(x) ? daysInStage(x) : '—']) }
     }
     if (rid === 'coverage') {
       const days: string[] = []; for (let d = period[0]; d <= period[1]; d = addDaysFrom(d, 1)) days.push(d)

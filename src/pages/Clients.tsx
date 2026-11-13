@@ -78,7 +78,7 @@ function ClientDrawer({ c, onClose }: { c: Client; onClose: () => void }) {
       <Button variant={c.status === 'On hold' ? 'primary' : 'danger'} icon={c.status === 'On hold' ? PlayCircle : PauseCircle} onClick={() => setAct('hold')}>{c.status === 'On hold' ? 'Restart care' : 'Put on hold'}</Button>
     </>}>
       {c.carePlan !== 'Up to date' && c.status !== 'Discharged' && <AlertBanner tone={c.carePlan === 'Overdue' ? 'danger' : 'warning'} title={`Care plan ${c.carePlan.toLowerCase()}`}>{c.coordinator} and the Care Supervisor have been reminded.</AlertBanner>}
-      {c.fromReferral && <AlertBanner tone="info" title={`Came from referral ${c.fromReferral}`} action={<button className="link-btn" onClick={() => nav(`/referrals?open=${c.fromReferral}`)}>Open</button>} />}
+      {c.fromReferral && <AlertBanner tone="info" title={`Came from referral ${c.fromReferral}`} action={<button className="link-btn" onClick={() => nav(`/referrals/${c.fromReferral}`)}>Open</button>} />}
       <dl className="kv">
         <dt>Coordinator</dt><dd>{c.coordinator}</dd>
         <dt>Services</dt><dd>{c.services}</dd>

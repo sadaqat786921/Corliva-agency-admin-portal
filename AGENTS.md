@@ -59,7 +59,13 @@ All data is sample data in `src/data/seed.ts`. Every change (invites, approvals,
 - **Services & Lists** — 5 lists; add, rename, switch on/off.
 - **Rules & Requirements** — blocking vs warning requirements, caregiver readiness, visit checks and who can approve, overrides.
 - **Notifications** — in-app and email toggles per alert.
-- **Referrals** — board/list; open a referral to add a note, change owner, move stage (with reason), close, or "Accept & make client" (duplicate check).
+- **Referrals** — board/list of all referrals (Enquiry → Qualification → Assessment → Decision → Converted, plus Closed). Each card shows owner, days in stage, last contact and what's still needed. Clicking a referral opens its **own full screen** (`/referrals/:id`, `src/pages/ReferralDetail.tsx`), not a modal:
+  - **Stage tracker** across the top. Click any stage to see its record. Finished stages are kept read-only — nothing is ever removed.
+  - **Stage record** for the selected stage: Enquiry details form; Qualification checks (area, service, times, how it's paid); Assessment (book the home visit, then record care needs, risks, getting around, hours a week); Decision (service agreement signed, start date); Converted summary with a link to the client.
+  - **Contact log**: every phone call, text, email, home visit or letter — who, what was said, the result, their response, and a follow-up date. Filter by all stages or the selected stage.
+  - **To move on** checklist (rules in `src/data/referrals.ts`). Moving is **manual**: the "Move to …" button only works when the checklist is done. "Move on anyway" and "Go back" need a written reason.
+  - Decision stage: "Accept & make client" (duplicate-name check, creates the client) or "Decline" (reason). Closing at any stage keeps every record.
+  - Person summary, owner change (with reason), and an Activity list of every change.
 - **Clients** — open a client to change coordinator or put on hold / restart care.
 - **Schedule** — week board and list; open a visit to assign a caregiver (blocked caregivers need an override with a reason) or cancel (one or all repeats).
 - **Visit Approvals** — approve one or many, or "Send back to fix" with a reason.

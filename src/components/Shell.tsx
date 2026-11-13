@@ -114,7 +114,7 @@ function Header() {
     s.clients.filter(c => c.name.toLowerCase().includes(t)).forEach(c => r.push({ label: c.name, sub: 'Client · ' + s.branchName(c.branch), to: `/clients?open=${c.id}` }))
     s.caregivers.filter(c => c.name.toLowerCase().includes(t)).forEach(c => r.push({ label: c.name, sub: 'Caregiver · ' + c.readiness, to: `/schedule?caregiver=${c.id}` }))
     s.users.filter(u => u.name.toLowerCase().includes(t)).forEach(u => r.push({ label: u.name, sub: 'Team · ' + u.role, to: `/users?open=${u.id}` }))
-    s.referrals.filter(x => x.name.toLowerCase().includes(t) || x.id.toLowerCase().includes(t)).forEach(x => r.push({ label: x.name, sub: `Referral ${x.id} · ${x.stage}`, to: `/referrals?open=${x.id}` }))
+    s.referrals.filter(x => x.name.toLowerCase().includes(t) || x.id.toLowerCase().includes(t)).forEach(x => r.push({ label: x.name, sub: `Referral ${x.id} · ${x.stage}`, to: `/referrals/${x.id}` }))
     s.visits.filter(v => ('#' + v.id.slice(1)).includes(t) || v.id.includes(t)).forEach(v => r.push({ label: 'Visit #' + v.id.slice(1), sub: `${fmtDate(v.date)} · ${v.start}`, to: `/schedule?visit=${v.id}` }))
     return r.slice(0, 8)
   }, [q, s.clients, s.caregivers, s.users, s.referrals, s.visits, s.branchName])

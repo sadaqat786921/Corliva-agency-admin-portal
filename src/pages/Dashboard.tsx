@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { CalendarDays, ClipboardCheck, UserX, Home, TriangleAlert, FileText, Download, UserPlus, ChevronLeft, ChevronRight, Clock, ShieldCheck, Users, History, CheckCircle2, Plus } from 'lucide-react'
 import { useStore, fmtDate, downloadCsv } from '../data/store'
 import { TODAY, iso, addDays, Stage } from '../data/seed'
+import { daysInStage } from '../data/referrals'
 import { Avatar, Button, CardHead, Chip, ChipTone, Field, Input, Modal, PageHead, Select, StatTile } from '../components/ui'
 import InviteModal from '../components/InviteModal'
 
@@ -136,7 +137,7 @@ export default function Dashboard() {
             <div className="card-body grid" style={{ gridTemplateColumns: 'repeat(5, minmax(0,1fr))', gap: 10 }}>
               {STAGES.map(st => {
                 const list = refs.filter(r => r.stage === st.s)
-                const sub = st.s === 'Enquiry' ? `New this week: ${list.length}` : st.s === 'Qualification' ? `No owner: ${list.filter(r => r.owner === 'Unassigned').length}` : st.s === 'Assessment' ? `Booked: ${list.length}` : st.s === 'Decision' ? `Over 3 days: ${list.filter(r => r.days > 3).length}` : 'This month'
+                const sub = st.s === 'Enquiry' ? `New this week: ${list.length}` : st.s === 'Qualification' ? `No owner: ${list.filter(r => r.owner === 'Unassigned').length}` : st.s === 'Assessment' ? `Booked: ${list.length}` : st.s === 'Decision' ? `Over 3 days: ${list.filter(r => daysInStage(r) > 3).length}` : 'This month'
                 return (
                   <button key={st.s} className="card card-pad col" style={{ gap: 6, background: 'var(--bg-subtle)', textAlign: 'left' }} onClick={() => nav(`/referrals?stage=${st.s}`)}>
                     <Chip tone={st.tone}>{st.s}</Chip><span className="t-kpi" style={{ fontSize: 24 }}>{list.length}</span><span className="t-caption t-muted">{sub}</span>
